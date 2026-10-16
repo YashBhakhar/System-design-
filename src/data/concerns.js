@@ -16,8 +16,7 @@ export const CONCERNS = [
     name: "Correctness & consistency",
     blurb: "Keeping data right when many machines share it.",
     icon: "check",
-    color: "#0891b2",
-    comingSoon: ["CAP theorem", "ACID", "Consistency models"]
+    color: "#0891b2"
   }
 ];
 

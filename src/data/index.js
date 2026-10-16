@@ -4,9 +4,20 @@
  */
 import scalability from "./topics/scalability.js";
 import performanceVsScalability from "./topics/performance-vs-scalability.js";
+import latencyVsThroughput from "./topics/latency-vs-throughput.js";
+import availabilityVsConsistency from "./topics/availability-vs-consistency.js";
+import consistencyPatterns from "./topics/consistency-patterns.js";
+import availabilityPatterns from "./topics/availability-patterns.js";
 import { CONCERNS, KINDS, LANES, LEVELS } from "./concerns.js";
 
-const TOPICS = [scalability, performanceVsScalability];
+const TOPICS = [
+  scalability,
+  performanceVsScalability,
+  latencyVsThroughput,
+  availabilityVsConsistency,
+  consistencyPatterns,
+  availabilityPatterns
+];
 
 export { CONCERNS, KINDS, LANES, LEVELS };
 
