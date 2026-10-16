@@ -1,0 +1,37 @@
+name: Explanation is wrong or unclear
+description: A concept is confusing, incorrect, or its example doesn't help.
+title: "[Unclear] "
+labels: ["content"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks! Reports like this are the most useful way to improve the site — no coding needed.
+  - type: input
+    id: concept
+    attributes:
+      label: Which concept?
+      description: The concept's name, or its link (e.g. `.../#redundancy`).
+      placeholder: Redundancy
+    validations:
+      required: true
+  - type: dropdown
+    id: problem
+    attributes:
+      label: What's the problem?
+      options:
+        - It's factually wrong
+        - Too hard to understand / too much jargon
+        - The real-world example doesn't help
+        - Something important is missing
+        - A link in "Learn more" is broken or poor
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: What confused you, or what is wrong? A suggested better wording or example is very welcome.
+    validations:
+      required: true

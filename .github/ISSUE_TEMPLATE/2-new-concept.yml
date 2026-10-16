@@ -1,0 +1,31 @@
+name: Suggest a new concept or topic
+description: Something that should be on the map but isn't.
+title: "[New concept] "
+labels: ["new-concept"]
+body:
+  - type: input
+    id: concept
+    attributes:
+      label: Concept or topic name
+      placeholder: CAP theorem
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why should it be added?
+      description: What does a learner need it for? Which existing concepts does it connect to?
+      placeholder: Needed to understand NoSQL trade-offs; connects to Replication and Sharding.
+    validations:
+      required: true
+  - type: textarea
+    id: sources
+    attributes:
+      label: Good sources to learn it from
+      description: Beginner-friendly articles, videos or docs (optional).
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contributing
+      options:
+        - label: I'd like to write this concept myself
