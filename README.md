@@ -2,6 +2,8 @@
 
 Learn system design **one concept at a time**, in plain words, with a **real-world example** for every idea. It's made for first-year students and anyone who keeps forgetting what "redundancy" or "sharding" meant halfway through learning something else.
 
+**Live site:** https://yashbhakhar.github.io/System-design-/
+
 ## Three ways to use it
 
 | Mode | For | What you get |
@@ -26,6 +28,7 @@ Open the address it prints (usually http://localhost:5173). Link straight to a c
 | Topic | Concepts | Built from |
 | --- | --- | --- |
 | Scalability | 33 | [CS75 Scalability lecture](https://www.youtube.com/watch?v=-W9F__D3oY4), [Scalability for Dummies](https://web.archive.org/web/20221030091841/http://www.lecloud.net/tagged/scalability/chrono) |
+| Performance vs scalability | 5 | [A Word on Scalability](https://www.allthingsdistributed.com/2006/03/a_word_on_scalability.html) (Werner Vogels), [Scalability, Availability & Stability Patterns](https://www.slideshare.net/slideshow/scalability-availability-stability-patterns/4062682) (Jonas Bonér) |
 
 Coming next: correctness & consistency (CAP theorem, ACID, consistency models).
 
