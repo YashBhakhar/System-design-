@@ -4,6 +4,19 @@ Notable changes to this project. The format follows [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Added
+
+- Topic: **Performance vs scalability**, with 5 concepts: Performance, Proportional Scaling, Algorithms That Don't Scale, Mixed (Heterogeneous) Servers and Design for Scale from the Start. Also a "Don't confuse" pair: Performance vs Scalability.
+
+### Changed
+
+- Scalability now lists Performance under "Know these first".
+- Learning path: among concepts that are ready, bigger-picture concepts now come before details.
+
+### Fixed
+
+- The site was blank on GitHub Pages. The build now uses relative paths, and a workflow publishes the built site on every push to `main`.
+
 ## [0.1.0] - 2026-10-16
 
 ### Added

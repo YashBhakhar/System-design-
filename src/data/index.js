@@ -3,9 +3,10 @@
  * and is added to TOPICS below. The format is described in CONTRIBUTING.md.
  */
 import scalability from "./topics/scalability.js";
+import performanceVsScalability from "./topics/performance-vs-scalability.js";
 import { CONCERNS, KINDS, LANES, LEVELS } from "./concerns.js";
 
-const TOPICS = [scalability];
+const TOPICS = [scalability, performanceVsScalability];
 
 export { CONCERNS, KINDS, LANES, LEVELS };
 
@@ -20,16 +21,18 @@ const prereqsOf = (n) => (n.prereqs ?? []).filter((id) => NODE_BY_ID[id]);
 
 /*
  * The learning path: every concept comes after its prerequisites.
- * Among concepts that are ready, earlier concerns go first, then file order.
+ * Among concepts that are ready: earlier concern first, then the bigger picture
+ * (lower level) before details, then file order.
  * So a new concept slots into the right place just by listing its prereqs.
  */
 function learningPath() {
   const concernRank = new Map(CONCERNS.map((c, i) => [c.id, i]));
   const fileRank = new Map(NODES.map((n, i) => [n.id, i]));
-  const rank = (id) => [concernRank.get(NODE_BY_ID[id].concern) ?? 99, fileRank.get(id)];
+  const rank = (id) => [concernRank.get(NODE_BY_ID[id].concern) ?? 99, NODE_BY_ID[id].level ?? 9, fileRank.get(id)];
   const before = (a, b) => {
-    const [ca, fa] = rank(a), [cb, fb] = rank(b);
-    return ca !== cb ? ca < cb : fa < fb;
+    const ra = rank(a), rb = rank(b);
+    const i = ra.findIndex((v, k) => v !== rb[k]);
+    return i !== -1 && ra[i] < rb[i];
   };
 
   const waiting = new Map(NODES.map((n) => [n.id, new Set(prereqsOf(n))]));

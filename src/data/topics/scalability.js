@@ -46,7 +46,7 @@ const nodes = [
     level: 1,
     concern: "foundations",
     kind: "idea",
-    prereqs: ["server"],
+    prereqs: ["server", "performance"],
     short: "Can your system handle more users without breaking or slowing down?",
     what: "Scalability is the ability of a system to handle **more work** (more users, more requests, more data) by adding more resources, without becoming slow or crashing.",
     example: [
@@ -55,7 +55,11 @@ const nodes = [
     ],
     why: "Apps start small but can grow overnight: a post goes viral, exam results are announced, a sale starts. If the system can't grow, users see errors and leave.",
     remember: "Scalable = more users, same speed.",
-    sources: [PRIMER("performance-vs-scalability", "Performance vs scalability"), VIDEO]
+    sources: [
+      PRIMER("performance-vs-scalability", "Performance vs scalability"),
+      link("Werner Vogels: A Word on Scalability", "https://www.allthingsdistributed.com/2006/03/a_word_on_scalability.html"),
+      VIDEO
+    ]
   },
   {
     id: "server",

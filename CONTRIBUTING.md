@@ -65,7 +65,7 @@ Text can use `**bold**`. Nothing else is formatted.
 
 ### Prerequisites decide the learning path
 
-There is no hand-written order. The **Learn** path is worked out from `prereqs`: every concept comes after the concepts it needs. List only what a learner *really* needs to understand first, usually 1 to 3 concepts. A prerequisite may live in another topic file.
+There is no hand-written order. The **Learn** path is worked out from `prereqs`: every concept comes after the concepts it needs. When several concepts are ready, earlier concerns come first, then bigger-picture concepts (lower `level`) before details. List only what a learner *really* needs to understand first, usually 1 to 3 concepts. A prerequisite may live in another topic file.
 
 ### Kinds
 

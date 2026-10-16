@@ -2,5 +2,8 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
-  plugins: [react()]
+  plugins: [react()],
+  // Relative asset paths, so the built site works from any folder,
+  // e.g. https://<user>.github.io/System-design-/ (and on forks).
+  base: "./"
 });
