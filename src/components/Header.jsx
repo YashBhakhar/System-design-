@@ -2,7 +2,7 @@ import { MODES, hrefFor } from "../utils/route.js";
 import SearchBar from "./SearchBar.jsx";
 import Icon from "./Icon.jsx";
 
-const LABELS = { learn: "Learn", browse: "Browse", explore: "Explore" };
+const LABELS = { learn: "Learn", browse: "Browse", explore: "Explore", ask: "Ask AI" };
 
 export default function Header({ mode, onToggleTheme }) {
   return (
@@ -17,7 +17,8 @@ export default function Header({ mode, onToggleTheme }) {
       <div className="brand">
         Concept Map <span>· System Design</span>
       </div>
-      <SearchBar onPick={(id) => (window.location.hash = hrefFor(mode, id))} />
+      {/* Ask has no concept pages, so a search result opens in Learn. */}
+      <SearchBar onPick={(id) => (window.location.hash = hrefFor(mode === "ask" ? "learn" : mode, id))} />
       <button type="button" className="icon-btn" onClick={onToggleTheme} aria-label="Switch light or dark theme">
         <Icon name="moon" />
       </button>

@@ -1,0 +1,5 @@
+# Copy to .dev.vars (ignored by git) and fill in. Used only by `npm run dev`.
+GEMINI_API_KEY=
+GROQ_API_KEY=
+# Turns on GET /check, which tells you if the model names in src/config.js exist.
+DEV_MODE=1

@@ -1,0 +1,21 @@
+# Cloudflare Worker for the Ask AI tab. Free plan is enough.
+# Secrets (never in this file):
+#   npx wrangler secret put GEMINI_API_KEY
+#   npx wrangler secret put GROQ_API_KEY
+# For local dev, put them in .dev.vars instead (see .dev.vars.example).
+name = "concept-map-ai"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+# Origins only (no path). Requests from anywhere else are refused.
+ALLOWED_ORIGINS = "https://yashbhakhar.github.io,http://localhost:5173"
+
+# Per-IP limit: 6 questions a minute. Period must be 10 or 60 seconds.
+[[ratelimits]]
+name = "LIMITER"
+namespace_id = "1001"
+
+  [ratelimits.simple]
+  limit = 6
+  period = 60

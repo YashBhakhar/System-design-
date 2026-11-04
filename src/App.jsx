@@ -3,6 +3,7 @@ import Header from "./components/Header.jsx";
 import LearnView from "./views/LearnView.jsx";
 import BrowseView from "./views/BrowseView.jsx";
 import ExploreView from "./views/ExploreView.jsx";
+import AskView from "./views/AskView.jsx";
 import { useProgress } from "./hooks/useProgress.js";
 import { useTheme } from "./hooks/useTheme.js";
 import { replaceHash, useRoute } from "./utils/route.js";
@@ -21,9 +22,13 @@ export default function App() {
     else storage.set("mode", route.mode);
   }, [route]);
 
-  // New page: start at the top (Explore keeps its map in place).
+  // Explore and Ask stay mounted while their URL changes: Explore keeps its map
+  // in place, Ask keeps a question that is still waiting for its answer.
+  const keepsState = route.mode === "explore" || route.mode === "ask";
+
+  // New page: start at the top (Ask scrolls to the newest message itself).
   useEffect(() => {
-    if (route.mode !== "explore") window.scrollTo(0, 0);
+    if (!keepsState) window.scrollTo(0, 0);
   }, [route.mode, route.a, route.b]);
 
   if (!route.mode) return null;
@@ -31,10 +36,11 @@ export default function App() {
   return (
     <>
       <Header mode={route.mode} onToggleTheme={theme.toggle} />
-      <main key={route.mode === "explore" ? "explore" : window.location.hash}>
+      <main key={keepsState ? route.mode : window.location.hash}>
         {route.mode === "learn" && <LearnView id={route.a} done={done} onToggle={toggle} />}
         {route.mode === "browse" && <BrowseView concernId={route.a} conceptId={route.b} done={done} onToggle={toggle} />}
         {route.mode === "explore" && <ExploreView id={route.a} done={done} />}
+        {route.mode === "ask" && <AskView chatId={route.a} />}
       </main>
     </>
   );

@@ -1,2 +1,9 @@
 node_modules
 dist
+
+# Ask AI worker
+.wrangler
+.dev.vars
+
+# Local site settings (see .env.example)
+.env.local
