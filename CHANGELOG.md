@@ -6,6 +6,8 @@ Notable changes to this project. The format follows [Keep a Changelog](https://k
 
 ### Added
 
+- **Ask AI** mode: ask your own system design question. Answers are marked **From Concept Map**, **Concept Map + AI** or **AI-generated**, link to the concepts they used, and come in Quick, Normal or Deep. Chats are saved in the browser. A Cloudflare Worker (`worker/`) holds the AI keys and tries free Groq models first, then Google Gemini.
+- `npm run check-ai`: tests the Ask AI logic without keys or network; it also runs in CI and before each deploy.
 - Topic: **Performance vs scalability**, with 5 concepts: Performance, Proportional Scaling, Algorithms That Don't Scale, Mixed (Heterogeneous) Servers and Design for Scale from the Start. Also a "Don't confuse" pair: Performance vs Scalability.
 
 ### Changed

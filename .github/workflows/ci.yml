@@ -19,5 +19,7 @@ jobs:
       - run: npm ci
       - name: Check concept data
         run: npm run check-data
+      - name: Check Ask AI logic
+        run: npm run check-ai
       - name: Build
         run: npm run build

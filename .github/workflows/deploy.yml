@@ -28,8 +28,14 @@ jobs:
       - run: npm ci
       - name: Check concept data
         run: npm run check-data
+      - name: Check Ask AI logic
+        run: npm run check-ai
       - name: Build
         run: npm run build
+        env:
+          # The Ask AI Worker's URL: a repository variable (not a secret; it's public).
+          # Settings → Secrets and variables → Actions → Variables. Unset: the Ask tab says the AI is off.
+          VITE_AI_URL: ${{ vars.VITE_AI_URL }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
