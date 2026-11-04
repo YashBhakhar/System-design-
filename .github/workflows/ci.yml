@@ -1,8 +1,7 @@
 name: CI
 
+# Checks pull requests before merging. Pushes to main are checked by deploy.yml.
 on:
-  push:
-    branches: [main]
   pull_request:
 
 permissions:

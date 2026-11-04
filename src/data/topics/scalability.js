@@ -304,7 +304,7 @@ const nodes = [
   {
     id: "high-availability",
     title: "High Availability",
-    aliases: ["ha", "failover", "uptime", "heartbeat", "active-passive", "active-active"],
+    aliases: ["ha", "highly available", "always up"],
     level: 1,
     concern: "up",
     kind: "principle",
@@ -313,9 +313,9 @@ const nodes = [
     what: "High availability (HA) means designing the system so it stays up almost all the time, by having **backups for every important part** and switching to them automatically.",
     example: "An airplane has two engines and two pilots. If one engine or one pilot fails, the flight continues.",
     details: [
-      "**Active–Passive**: one machine works and the other waits. They send each other a 'heartbeat' every second. If the active one stops responding, the passive one takes over",
-      "**Active–Active**: both machines work at the same time and share the load. If one dies, the other carries everything",
-      "Availability is measured in 'nines': 99.9% ≈ 8.7 hours down per year, 99.99% ≈ 52 minutes per year"
+      "Two patterns work together: **failover** (a backup machine takes over) and **replication** (backup copies of the data)",
+      "**Active–Passive**: one machine works and the other waits. **Active–Active**: both work and cover for each other",
+      "Availability is measured in 'nines': 99.9% ≈ 8¾ hours down per year, 99.99% ≈ 53 minutes per year"
     ],
     pros: ["Users rarely see downtime"],
     cons: ["Costs more because you pay for backup machines", "More complex: failover must be tested regularly"],
