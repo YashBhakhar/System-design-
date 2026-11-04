@@ -8,7 +8,9 @@ A fourth mode, **Ask**, next to Learn / Browse / Explore. A student types a ques
 - **Concept Map + AI**: our concepts, plus general AI knowledge.
 - **AI-generated**: nothing in our data matched, so the answer may be wrong.
 
-It must cost nothing: Gemini free tier (Groq free tier as fallback), and a Cloudflare Worker (free plan) to hide the API keys.
+It must cost nothing: Groq free tier first, Gemini free tier as fallback, and a Cloudflare Worker (free plan) to hide the API keys.
+
+> **Changed during T-01 (Nov 2026):** the plan started Gemini-first. When we measured it, Gemini 3.5's free tier took 20–30 s per answer and often replied "high demand", while Groq's `gpt-oss-120b` answered in ~2 s with valid JSON. So the order is now Groq → Groq → Gemini. It's one list (`PROVIDERS` in `worker/src/config.js`), so it's easy to flip back.
 
 ## How it works
 
@@ -20,8 +22,9 @@ Browser (GitHub Pages)                       Cloudflare Worker (free)           
    → top K concepts (+ graph neighbours)
 3. POST { question, level, context, history } ──► 4. Check origin, size, rate limit
                                                   5. Build prompt (fixed system prompt)
-                                                  6. Call Gemini ────────────────────► Gemini
-                                                     on 429/5xx → call Groq ────────► Groq
+                                                  6. Try PROVIDERS in order ─────────► Groq gpt-oss-120b
+                                                     on any failure → next ─────────► Groq gpt-oss-20b
+                                                                                 ───► Gemini 3.5 Flash
                                                   7. Return { answer, usedConceptIds,
                                                      usedGeneralKnowledge } or { error }
 8. Check the ids against NODE_BY_ID
@@ -41,11 +44,13 @@ Key decisions:
 
 Shown as three buttons: Quick / Normal / Deep. Students don't see temperature or top-K. Temperature is fixed at 0.3.
 
-| Level  | Concepts sent (K) | Graph neighbours added        | Max output tokens | Gemini model   |
-|--------|-------------------|-------------------------------|-------------------|----------------|
-| Quick  | 2                 | none                          | 400               | Flash-Lite     |
-| Normal | 4                 | prereqs of the top match      | 900               | Flash          |
-| Deep   | 6                 | prereqs + `relatedTo` of top 2| 2000              | Flash (thinking on) |
+| Level  | Concepts sent (K) | Graph neighbours added        | Answer length (prompt) | Token ceiling | gpt-oss reasoning | Gemini fallback |
+|--------|-------------------|-------------------------------|------------------------|---------------|-------------------|-----------------|
+| Quick  | 2                 | none                          | ~100 words             | 1024          | low               | Flash-Lite      |
+| Normal | 4                 | prereqs of the top match      | ~250 words             | 2048          | low               | Flash           |
+| Deep   | 6                 | prereqs + `relatedTo` of top 2| ~500 words, step by step | 4096        | medium            | Flash           |
+
+Length is set in the prompt. The token ceiling is only a safety net, kept high because "thinking" tokens count towards it, and a low ceiling cuts the JSON off half-way.
 
 The Worker owns this table (`LEVELS` in `worker/src/config.js`), so a client can't ask for 50k tokens. The client owns K and the neighbours (`src/ai/levels.js`).
 
@@ -55,7 +60,7 @@ The Worker returns an error `code`, and `src/ai/messages.js` turns it into a mes
 
 | Code             | When                                       | Example message |
 |------------------|--------------------------------------------|-----------------|
-| `QUOTA`          | Gemini **and** Groq said quota exhausted   | "Some moron used up all the free AI today 🤡 Come back tomorrow." / "Some idiot ate all our free tokens 🍪 Try again tomorrow." |
+| `QUOTA`          | Every provider said its daily quota is used up | "Some moron used up all the free AI today 🤡 Come back tomorrow." / "Some idiot ate all our free tokens 🍪 Try again tomorrow." |
 | `SLOW_DOWN`      | Our per-IP limit, or a provider's per-minute limit | "Slow down, genius 🐢 Wait one minute and ask again." / "Too fast, dummy 🏎️ Wait a minute." |
 | `TOO_LONG`       | Question longer than 500 characters        | "Bro, this is a book, not a question 📚 Keep it short." |
 | `OFF_TOPIC`      | The model flagged the question as not about software or system design | "Nice try, clown 🤡 I only answer system design questions." |
@@ -65,7 +70,7 @@ The Worker returns an error `code`, and `src/ai/messages.js` turns it into a mes
 
 Keep every message short and in simple English: one joke word, one emoji, and one clear next step (wait, try again, check Wi-Fi). Mix the words (moron, idiot, genius, dummy, clown, buddy) so the same one doesn't repeat every time.
 
-Gemini's free daily quota resets at midnight Pacific time, so `QUOTA` can say "come back tomorrow".
+Free daily quotas reset once a day (Gemini's at midnight Pacific time), so `QUOTA` can say "come back tomorrow".
 
 ## Tasks
 
@@ -73,7 +78,7 @@ Gemini's free daily quota resets at midnight Pacific time, so `QUOTA` can say "c
 New folder `worker/` (its own `package.json`, plain JS):
 
 - `worker/wrangler.toml`: name `concept-map-ai`, a `[vars]` entry `ALLOWED_ORIGINS` = `https://yashbhakhar.github.io,http://localhost:5173` (an origin has no path, so `/System-design-/` is left off), and a Rate Limiting binding (`[[ratelimits]]`, `name = "LIMITER"`, e.g. 6 requests per 60 s per IP). Check the binding is on the free plan when setting it up. If it isn't, use a per-isolate `Map` (best-effort). **Don't** write to KV on every request: KV's free plan allows only 1,000 writes a day.
-- `worker/src/config.js`: the model names (`gemini-3.5-flash`, `gemini-3.5-flash-lite`, `llama-3.3-70b-versatile`). Confirm them against the Gemini `models` list endpoint and the Groq console while building T-01., the `LEVELS` table, and the size limits (question ≤ 500 chars, context ≤ 12k chars, history ≤ 4 turns).
+- `worker/src/config.js`: `PROVIDERS` (the order to try: `openai/gpt-oss-120b`, `openai/gpt-oss-20b` on Groq, then `gemini-3.5-flash` / `-flash-lite`), the `LEVELS` table, and the size limits (question ≤ 500 chars, context ≤ 12k chars, history ≤ 4 turns). `llama-3.3-70b-versatile` was the first Groq pick, but it's no longer on Groq. Check names with `GET /check` after any change.
 - `worker/src/prompt.js`: the fixed system prompt:
   - Explain for a first-year student, in plain words, with an everyday example.
   - Use the provided Concept Map context first. List in `usedConceptIds` only the ids you actually used.
@@ -81,10 +86,11 @@ New folder `worker/` (its own `package.json`, plain JS):
   - If the question isn't about software or system design, return `offTopic: true`.
   - Reply as JSON: `{ answer, usedConceptIds, usedGeneralKnowledge, offTopic }`.
 - `worker/src/providers.js`:
-  - `callGemini(level, prompt)` → `POST https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent` with header `x-goog-api-key`, `responseMimeType: "application/json"` + `responseSchema`.
-  - `callGroq(level, prompt)` → `POST https://api.groq.com/openai/v1/chat/completions` with `response_format: { type: "json_object" }`.
+  - `callProvider(env, provider, ask)` picks one of these:
+    - Groq → `POST https://api.groq.com/openai/v1/chat/completions` with `response_format: { type: "json_object" }` and `reasoning_effort` (gpt-oss only).
+    - Gemini → `POST https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent` with header `x-goog-api-key`, `responseMimeType: "application/json"` + `responseSchema`.
   - Both return the parsed object or throw `{ code }`: 429 per-minute → `SLOW_DOWN`, 429 daily → `QUOTA`, anything else → `UPSTREAM`.
-- `worker/src/index.js`: handles CORS (`OPTIONS`, and only the allowed origins), then the method, size and rate-limit checks, then Gemini → Groq fallback (`QUOTA` only if **both** are exhausted), then returns JSON.
+- `worker/src/index.js`: handles CORS (`OPTIONS`, and only the allowed origins), then the method, size and rate-limit checks, then tries `PROVIDERS` in order (`QUOTA` only if **every** one is used up), then returns JSON.
 - Secrets: `npx wrangler secret put GEMINI_API_KEY` and `GROQ_API_KEY`. Deploy with `npx wrangler deploy` (manual, not in CI for now).
 
 ### T-02 Retrieval (pure, testable)
@@ -164,7 +170,7 @@ Run `npm run dev` and `cd worker && npx wrangler dev` (with `VITE_AI_URL=http://
 
 - Embeddings (Gemini embedding model, precomputed at build time) if keyword retrieval misses too often.
 - Streaming answers.
-- A Groq-first option for Quick (faster).
+- Move Gemini back to first place if its free tier gets faster (re-time it with the same test questions).
 - Supabase only if students ask for history across devices.
 
 ## Setup status

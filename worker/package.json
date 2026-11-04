@@ -1,0 +1,15 @@
+{
+  "name": "concept-map-ai",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Cloudflare Worker that answers Ask AI questions for Concept Map. Holds the API keys.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check": "wrangler deploy --dry-run --outdir .wrangler/dry-run"
+  },
+  "devDependencies": {
+    "wrangler": "^4.157.0"
+  }
+}
