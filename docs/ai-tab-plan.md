@@ -151,6 +151,18 @@ There's no test framework, so add `scripts/check-ai.js` (`npm run check-ai`, pla
 
 Run `npm run check-data`, `npm run check-ai` and `npm run build`.
 
+**As built:** `check-ai` covers the site's side (matching, levels, context text, origin rule, history, every error message, `ask()` against a fake network, chat limits and broken storage, answer formatting in `src/ai/format.js`). It then runs `worker/test/check-worker.js`, which calls the Worker with fake providers:
+- who may call it (origin, preflight, `/check` off in production)
+- input limits, and context and history trimming
+- keys sent only in headers, never in the prompt
+- tokens and reasoning per level
+- the fallback order
+- `OFF_TOPIC`
+- which code comes back when everything fails (`QUOTA` only if all are used up)
+- both rate limiters
+
+Both run in CI and before every deploy. Breaking the id filter, the `QUOTA` rule or the rate limit on purpose made the checks fail.
+
 ### T-08 Browser QA (last)
 Run `npm run dev` and `cd worker && npx wrangler dev` (with `VITE_AI_URL=http://localhost:8787` in `.env`):
 

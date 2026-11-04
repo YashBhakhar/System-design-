@@ -63,7 +63,7 @@ Everything else works without this. The AI keys live in a small [Cloudflare Work
 
 4. **Connect the live site:** in the GitHub repo, *Settings → Secrets and variables → Actions → Variables*, add `VITE_AI_URL` with the Worker's URL. The next deploy picks it up.
 
-`npm run check-ai` tests the Ask AI logic without any keys or network. `npm run check-ai -- "your question"` shows which concepts a question matches.
+`npm run check-ai` tests the Ask AI logic, in the site and in the Worker, without any keys or network. `npm run check-ai -- "your question"` shows which concepts a question matches.
 
 ## What's covered
 

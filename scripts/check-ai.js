@@ -5,6 +5,7 @@ import { ASK_LEVELS, MAX_CONCEPTS } from "../src/ai/levels.js";
 import { ask, historyFor, MAX_QUESTION, originOf } from "../src/ai/client.js";
 import { ERROR_MESSAGES, funMessage, loadingMessage } from "../src/ai/messages.js";
 import { addMessage, deleteChat, findChat, loadChats, MAX_CHATS, MAX_MESSAGES, newChatId, saveChats, titleFor } from "../src/ai/chats.js";
+import { toBlocks } from "../src/ai/format.js";
 
 const question = process.argv[2];
 if (question) {
@@ -173,6 +174,25 @@ saveChats(chats);
 check(loadChats().length === 0, "storage: blocked or full storage should not throw");
 delete globalThis.localStorage;
 
+// Answer formatting: paragraphs, lists, headings and stray stars.
+const shape = (text) => toBlocks(text).map((b) => `${b.type}:${b.lines.join("|")}`);
+for (const [text, expected] of [
+  ["One.\nStill one.\n\nTwo.", ["p:One.|Still one.", "p:Two."]],
+  ["Intro:\n- a\n- **b**\nAfter.", ["p:Intro:", "ul:a|**b**", "p:After."]],
+  ["1. first\n2) second", ["ol:first|second"]],
+  ["* star\n• dot", ["ul:star|dot"]],
+  ["### Heading\ntext", ["p:Heading|text"]],
+  ["only if *all* fail, **bold** stays, 2*3*4 too", ["p:only if all fail, **bold** stays, 2*3*4 too"]],
+  ["- *item* here", ["ul:item here"]],
+  ["\n\n  \n", []],
+  [undefined, []]
+]) {
+  check(same(shape(text), expected), `format ${JSON.stringify(text)}: got ${JSON.stringify(shape(text))}`);
+}
+
 errors.forEach((e) => console.error("ERROR", e));
-console.log(`\n${errors.length} errors`);
-process.exit(errors.length ? 1 : 0);
+console.log(`\nSite: ${errors.length} errors`);
+if (errors.length) process.exit(1);
+
+// Then the Worker's own checks (it prints its result and exits).
+await import("../worker/test/check-worker.js");

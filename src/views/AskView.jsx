@@ -4,6 +4,7 @@ import { AI_URL, MAX_QUESTION, ask } from "../ai/client.js";
 import { ASK_LEVELS, DEFAULT_LEVEL } from "../ai/levels.js";
 import { addMessage, deleteChat, findChat, loadChats, newChatId, saveChats } from "../ai/chats.js";
 import { funMessage, loadingMessage } from "../ai/messages.js";
+import { toBlocks } from "../ai/format.js";
 import { replaceHash } from "../utils/route.js";
 import { storage } from "../utils/storage.js";
 import { Rich } from "../utils/RichText.jsx";
@@ -20,30 +21,6 @@ const ORIGINS = {
 
 // Errors where asking the same question again can work.
 const RETRY = new Set(["SLOW_DOWN", "NETWORK", "UPSTREAM"]);
-
-const LIST_ITEM = /^(?:[-*•]|(\d+)[.)])\s+(.*)$/;
-
-// The AI writes short paragraphs and "- " lists (worker/src/prompt.js): group lines into those.
-function toBlocks(text) {
-  const blocks = [];
-  let open = null;
-  for (const raw of String(text).split("\n")) {
-    // Headings become plain lines; *italic* loses its stars (Rich only does **bold**).
-    const line = raw
-      .trim()
-      .replace(/^#{1,6}\s+/, "")
-      .replace(/(^|[^*\w])\*(?!\s)([^*\n]+?)\*(?![*\w])/g, "$1$2");
-    if (!line) {
-      open = null;
-      continue;
-    }
-    const item = line.match(LIST_ITEM);
-    const type = item ? (item[1] ? "ol" : "ul") : "p";
-    if (!open || open.type !== type) blocks.push((open = { type, lines: [] }));
-    open.lines.push(item ? item[2] : line);
-  }
-  return blocks;
-}
 
 function AnswerText({ text }) {
   return toBlocks(text).map((b, i) => {

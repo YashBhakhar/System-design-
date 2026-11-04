@@ -6,7 +6,7 @@ A React + Vite site that teaches system design one concept at a time, for first-
 
 - `npm run dev`: local site (Ask AI needs `VITE_AI_URL` in `.env.local`; see README)
 - `npm run check-data`: validates concept data (must show 0 errors)
-- `npm run check-ai`: tests the Ask AI logic, no keys or network (must show 0 errors); `-- "question"` shows what a question matches
+- `npm run check-ai`: tests the Ask AI logic in the site and the Worker (`worker/test/check-worker.js`, fake providers), no keys or network (both must show 0 errors); `-- "question"` shows what a question matches
 - `npm run build`: production build
 - `cd worker && npm run dev | check | deploy`: the Ask AI Worker locally, a dry-run bundle, or a deploy
 
