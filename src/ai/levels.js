@@ -8,9 +8,9 @@
  *   contextChars text budget for all concepts together
  */
 export const ASK_LEVELS = {
-  quick: { label: "Quick", k: 2, neighbours: "none", contextChars: 3_000 },
-  normal: { label: "Normal", k: 4, neighbours: "prereqs", contextChars: 7_000 },
-  deep: { label: "Deep", k: 6, neighbours: "prereqs+related", contextChars: 12_000 }
+  quick: { label: "Quick", hint: "Short answer", k: 2, neighbours: "none", contextChars: 3_000 },
+  normal: { label: "Normal", hint: "Usual answer", k: 4, neighbours: "prereqs", contextChars: 7_000 },
+  deep: { label: "Deep", hint: "Long answer, step by step", k: 6, neighbours: "prereqs+related", contextChars: 12_000 }
 };
 
 export const DEFAULT_LEVEL = "normal";

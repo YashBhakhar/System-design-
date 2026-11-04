@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { NODE_BY_ID } from "../data/index.js";
 
-export const MODES = ["learn", "browse", "explore"];
+export const MODES = ["learn", "browse", "explore", "ask"];
 
 /*
  * URLs:
  *   #/learn/<concept>
  *   #/browse   #/browse/<concern>   #/browse/<concern>/<concept>
  *   #/explore/<concept>
+ *   #/ask   #/ask/<chat>
  * Old links like #redundancy still work (they open Learn).
  */
 export function parseHash(hash) {
