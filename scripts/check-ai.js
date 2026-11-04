@@ -4,6 +4,7 @@ import { MIN_SCORE, retrieve, scoreAll, stem, toContext } from "../src/ai/retrie
 import { ASK_LEVELS, MAX_CONCEPTS } from "../src/ai/levels.js";
 import { ask, historyFor, MAX_QUESTION, originOf } from "../src/ai/client.js";
 import { ERROR_MESSAGES, funMessage, loadingMessage } from "../src/ai/messages.js";
+import { addMessage, deleteChat, findChat, loadChats, MAX_CHATS, MAX_MESSAGES, newChatId, saveChats, titleFor } from "../src/ai/chats.js";
 
 const question = process.argv[2];
 if (question) {
@@ -135,6 +136,42 @@ controller.abort();
 globalThis.fetch = async (_u, init) => { init.signal.throwIfAborted(); };
 check((await ask({ question: "what is latency", url: "x", signal: controller.signal })).error === "CANCELLED", "ask: cancel should give CANCELLED");
 globalThis.fetch = realFetch;
+
+// Chats: limits, order, titles, and broken storage.
+let chats = [];
+for (let i = 1; i <= MAX_CHATS + 1; i++) chats = addMessage(chats, `c${i}`, { role: "user", text: `question ${i}` }, i);
+check(chats.length === MAX_CHATS, `chats: ${chats.length} kept, max is ${MAX_CHATS}`);
+check(chats[0].id === `c${MAX_CHATS + 1}` && !findChat(chats, "c1"), "chats: newest should be first and the oldest dropped");
+chats = addMessage(chats, "c5", { role: "assistant", text: "answer", origin: "map", conceptIds: ["latency"] }, 100);
+check(chats[0].id === "c5" && chats[0].messages.length === 2 && chats[0].title === "question 5", "chats: answering should move the chat to the top and keep its title");
+check(chats[0].messages[1].origin === "map" && chats[0].messages[1].at === 100, "chats: answer extras should be kept");
+for (let i = 0; i < MAX_MESSAGES + 5; i++) chats = addMessage(chats, "c5", { role: "user", text: `m${i}` }, 200 + i);
+check(findChat(chats, "c5").messages.length === MAX_MESSAGES && findChat(chats, "c5").messages.at(-1).text === `m${MAX_MESSAGES + 4}`, "chats: should keep only the newest messages");
+const before = chats;
+addMessage(before, "new", { role: "user", text: "x" });
+check(before === chats && before.length === MAX_CHATS && !findChat(before, "new"), "chats: input should not change");
+check(deleteChat(chats, "c5").length === MAX_CHATS - 1 && !findChat(deleteChat(chats, "c5"), "c5"), "chats: delete");
+check(titleFor("  short  question ") === "short question", "title: should trim spaces");
+const longTitle = titleFor("why does a load balancer need health checks when servers can fail at any moment of the day");
+check(longTitle.length <= 61 && longTitle.endsWith("…") && !/\s…$/.test(longTitle), `title: long one should be cut at a word: "${longTitle}"`);
+check(/^[a-z0-9]+$/.test(newChatId()) && newChatId() !== newChatId(), "chat id: should be URL-safe and different each time");
+
+// Storage: no localStorage (Node, blocked) → empty; saved → loaded; junk → dropped.
+check(loadChats().length === 0, "storage: no localStorage should give no chats");
+const memory = new Map();
+globalThis.localStorage = { getItem: (k) => memory.get(k) ?? null, setItem: (k, v) => memory.set(k, String(v)) };
+saveChats(chats.slice(0, 3));
+check(loadChats().length === 3 && loadChats()[0].id === chats[0].id, "storage: saved chats should load back");
+memory.set("cm-chats", JSON.stringify([null, { id: 5 }, { id: "ok", messages: [{ role: "user", text: "q" }, { role: "hacker", text: "x" }, null] }, "junk"]));
+check(same(loadChats().map((c) => [c.id, c.messages.length]), [["ok", 1]]), `storage: junk should be dropped, got ${JSON.stringify(loadChats())}`);
+memory.set("cm-chats", "{not json");
+check(loadChats().length === 0, "storage: broken JSON should give no chats");
+memory.set("cm-chats", JSON.stringify({ not: "a list" }));
+check(loadChats().length === 0, "storage: a non-list should give no chats");
+globalThis.localStorage = { getItem: () => { throw new Error("blocked"); }, setItem: () => { throw new Error("full"); } };
+saveChats(chats);
+check(loadChats().length === 0, "storage: blocked or full storage should not throw");
+delete globalThis.localStorage;
 
 errors.forEach((e) => console.error("ERROR", e));
 console.log(`\n${errors.length} errors`);
