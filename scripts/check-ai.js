@@ -2,6 +2,8 @@
 // Try one question: npm run check-ai -- "what is a load balancer"
 import { MIN_SCORE, retrieve, scoreAll, stem, toContext } from "../src/ai/retrieve.js";
 import { ASK_LEVELS, MAX_CONCEPTS } from "../src/ai/levels.js";
+import { ask, historyFor, MAX_QUESTION, originOf } from "../src/ai/client.js";
+import { ERROR_MESSAGES, funMessage, loadingMessage } from "../src/ai/messages.js";
 
 const question = process.argv[2];
 if (question) {
@@ -70,6 +72,69 @@ for (const level of Object.keys(ASK_LEVELS)) {
   check(context[0]?.id === found[0] && !context[0].text.endsWith("…"), `context (${level}): best match missing or cut short`);
 }
 check(toContext(["no-such-concept"], 1000).length === 0, "context: unknown id should be skipped");
+
+// Origin badge: decided by our code, made-up ids don't count.
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+for (const [ids, general, expected] of [
+  [["latency"], false, { origin: "map", conceptIds: ["latency"] }],
+  [["latency", "cap-theorem"], true, { origin: "mixed", conceptIds: ["latency", "cap-theorem"] }],
+  [[], true, { origin: "ai", conceptIds: [] }],
+  [["made-up-id"], false, { origin: "ai", conceptIds: [] }],
+  [["latency", "made-up-id", "latency"], false, { origin: "map", conceptIds: ["latency"] }],
+  [undefined, undefined, { origin: "ai", conceptIds: [] }]
+]) {
+  const got = originOf(ids, general);
+  check(same(got, expected), `originOf(${JSON.stringify(ids)}, ${general}): got ${JSON.stringify(got)}`);
+}
+
+// History: last 4 real messages, failed answers left out.
+const chat = [1, 2, 3, 4, 5].flatMap((i) => [{ role: "user", text: `q${i}` }, { role: "assistant", text: `a${i}` }]);
+check(same(historyFor(chat).map((m) => m.text), ["q4", "a4", "q5", "a5"]), "history: should keep the last 4 messages");
+check(historyFor([{ role: "user", text: "q" }, { role: "assistant", text: "x", error: "QUOTA" }]).length === 1, "history: errors should be left out");
+
+// Fun messages: every code has one; unknown codes fall back.
+for (const code of Object.keys(ERROR_MESSAGES)) check(typeof funMessage(code) === "string", `message: none for ${code}`);
+check(ERROR_MESSAGES.UPSTREAM.includes(funMessage("SOMETHING_NEW")), "message: unknown code should use UPSTREAM");
+check(funMessage("QUOTA", () => 0.99) !== funMessage("QUOTA", () => 0), "message: QUOTA should have more than one");
+check(typeof loadingMessage() === "string", "message: no loading message");
+
+// ask(): checks before any network call.
+check((await ask({ question: "  ", url: "x" })).error === "BAD_REQUEST", "ask: empty question");
+check((await ask({ question: "a".repeat(MAX_QUESTION + 1), url: "x" })).error === "TOO_LONG", "ask: long question");
+check((await ask({ question: "hi", url: "" })).error === "NOT_CONFIGURED", "ask: no URL");
+
+// ask(): with a fake network.
+const realFetch = globalThis.fetch;
+const fakeFetch = (status, body, onCall) => {
+  globalThis.fetch = async (_url, init) => {
+    onCall?.(JSON.parse(init.body));
+    if (status === "offline") throw new TypeError("Failed to fetch");
+    return new Response(typeof body === "string" ? body : JSON.stringify(body), { status });
+  };
+};
+let sent;
+fakeFetch(200, { answer: "A", usedConceptIds: ["latency"], usedGeneralKnowledge: false, provider: "groq", model: "m" }, (b) => (sent = b));
+const good = await ask({ question: "what is latency", level: "quick", url: "x" });
+check(good.answer === "A" && good.origin === "map" && same(good.conceptIds, ["latency"]), `ask: good answer, got ${JSON.stringify(good)}`);
+check(sent?.level === "quick" && sent.context[0]?.id === "latency" && Array.isArray(sent.history), `ask: request body wrong: ${JSON.stringify(sent)?.slice(0, 120)}`);
+for (const [status, body, expected] of [
+  [429, { error: "QUOTA" }, "QUOTA"],
+  [429, { error: "SLOW_DOWN" }, "SLOW_DOWN"],
+  [200, { error: "OFF_TOPIC" }, "OFF_TOPIC"],
+  [502, { error: "UPSTREAM" }, "UPSTREAM"],
+  [500, "<html>oops</html>", "UPSTREAM"],
+  [200, { nothing: true }, "UPSTREAM"],
+  ["offline", null, "NETWORK"]
+]) {
+  fakeFetch(status, body);
+  const got = await ask({ question: "what is latency", url: "x" });
+  check(got.error === expected, `ask: ${status} ${JSON.stringify(body)} should give ${expected}, got ${JSON.stringify(got)}`);
+}
+const controller = new AbortController();
+controller.abort();
+globalThis.fetch = async (_u, init) => { init.signal.throwIfAborted(); };
+check((await ask({ question: "what is latency", url: "x", signal: controller.signal })).error === "CANCELLED", "ask: cancel should give CANCELLED");
+globalThis.fetch = realFetch;
 
 errors.forEach((e) => console.error("ERROR", e));
 console.log(`\n${errors.length} errors`);
