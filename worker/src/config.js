@@ -22,9 +22,29 @@ export const PROVIDERS = [
  * `reasoning` is how hard gpt-oss models think (Groq only).
  */
 export const LEVELS = {
-  quick: { words: "about 100 words", maxTokens: 1024, reasoning: "low" },
-  normal: { words: "about 250 words", maxTokens: 2048, reasoning: "low" },
-  deep: { words: "about 500 words, step by step, with a short summary at the end", maxTokens: 4096, reasoning: "medium" }
+  quick: {
+    words: "about 100 words",
+    shape: "1-2 sentences that answer the question, then up to 3 short \"- \" points. No headings.",
+    maxTokens: 1024,
+    reasoning: "low"
+  },
+  normal: {
+    words: "about 250 words",
+    shape:
+      "1-2 sentences that answer the question. Then 2-3 sections, each starting with a \"### \" heading of 2-5 words, followed by \"- \" points or one short paragraph. One section is the everyday example.",
+    template: "<1-2 sentence answer>\n\n### <Heading>\n- <point>\n- <point>\n\n### Everyday example\n<1-3 sentences>",
+    maxTokens: 2048,
+    reasoning: "low"
+  },
+  deep: {
+    words: "about 500 words",
+    shape:
+      "1-2 sentences that answer the question. Then 3-5 sections, each starting with a \"### \" heading of 2-5 words. Use \"1. \" numbered steps for anything that happens in order, \"- \" points otherwise. One section is the everyday example. End with a \"### Summary\" section of 2-3 \"- \" points.",
+    template:
+      "<1-2 sentence answer>\n\n### <Heading>\n- <point>\n- <point>\n\n### How it works\n1. <step>\n2. <step>\n\n### Everyday example\n<1-3 sentences>\n\n### Summary\n- <point>\n- <point>",
+    maxTokens: 4096,
+    reasoning: "medium"
+  }
 };
 
 export const TEMPERATURE = 0.3;

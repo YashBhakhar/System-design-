@@ -9,6 +9,7 @@
  */
 import { FALLBACK_RATE, LEVELS, LIMITS, PROVIDERS } from "./config.js";
 import { callProvider, checkModels, modelFor } from "./providers.js";
+import { needsHeadings } from "./prompt.js";
 
 export default {
   async fetch(request, env) {
@@ -40,13 +41,23 @@ export default {
     const errors = [];
     for (const provider of PROVIDERS) {
       try {
-        const out = await callProvider(env, provider, ask);
+        let out = await callProvider(env, provider, ask);
         if (out.offTopic) return reply(200, { error: "OFF_TOPIC" });
         if (typeof out.answer !== "string" || !out.answer.trim()) throw Object.assign(new Error("empty answer"), { code: "UPSTREAM" });
+        // Normal and Deep should have "### " sections; models sometimes skip them. Ask once more, firmly,
+        // and keep the first answer if the second fails or is no better.
+        if (needsHeadings(ask.level, fixBreaks(out.answer))) {
+          try {
+            const again = await callProvider(env, provider, { ...ask, reminder: true });
+            if (typeof again.answer === "string" && !again.offTopic && !needsHeadings(ask.level, fixBreaks(again.answer))) out = again;
+          } catch {
+            // keep the first answer
+          }
+        }
         // Only ids we actually sent count as "from the Concept Map".
         const sent = new Set(context.map((c) => c.id));
         return reply(200, {
-          answer: out.answer.trim(),
+          answer: fixBreaks(out.answer).trim(),
           usedConceptIds: [...new Set((Array.isArray(out.usedConceptIds) ? out.usedConceptIds : []).filter((id) => sent.has(id)))],
           usedGeneralKnowledge: out.usedGeneralKnowledge !== false,
           provider: provider.api,
@@ -63,6 +74,9 @@ export default {
     return reply(502, { error: "UPSTREAM" });
   }
 };
+
+// Some models escape line breaks twice in JSON, leaving "\n" as two characters.
+const fixBreaks = (text) => text.replace(/\\r\\n|\\n/g, "\n");
 
 async function readInput(request) {
   const raw = await request.text();

@@ -24,6 +24,7 @@ const RETRY = new Set(["SLOW_DOWN", "NETWORK", "UPSTREAM"]);
 
 function AnswerText({ text }) {
   return toBlocks(text).map((b, i) => {
+    if (b.type === "h") return <h3 key={i}><Rich text={b.lines[0]} /></h3>;
     if (b.type === "p") return <p key={i}><Rich text={b.lines.join(" ")} /></p>;
     const List = b.type;
     return (

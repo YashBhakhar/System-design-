@@ -41,19 +41,19 @@ function parseReply(raw) {
 export const modelFor = (provider, levelName) =>
   typeof provider.model === "string" ? provider.model : provider.model[levelName];
 
-/** Ask one provider. `ask` = { levelName, level, question, context, history }. */
+/** Ask one provider. `ask` = { levelName, level, question, context, history, reminder? }. */
 export function callProvider(env, provider, ask) {
   return provider.api === "groq" ? callGroq(env, provider, ask) : callGemini(env, provider, ask);
 }
 
-async function callGemini(env, provider, { levelName, level, question, context, history }) {
+async function callGemini(env, provider, { levelName, level, question, context, history, reminder }) {
   if (!env.GEMINI_API_KEY) throw fail("UPSTREAM", "GEMINI_API_KEY not set");
   const model = modelFor(provider, levelName);
   const data = await post(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
     { "x-goog-api-key": env.GEMINI_API_KEY },
     {
-      systemInstruction: { parts: [{ text: systemPrompt(level) }] },
+      systemInstruction: { parts: [{ text: systemPrompt(level, reminder) }] },
       contents: [
         ...history.map((h) => ({ role: h.role === "user" ? "user" : "model", parts: [{ text: h.text }] })),
         { role: "user", parts: [{ text: userPrompt(question, context) }] }
@@ -74,7 +74,7 @@ async function callGemini(env, provider, { levelName, level, question, context, 
   return { ...parseReply(raw), model };
 }
 
-async function callGroq(env, provider, { levelName, level, question, context, history }) {
+async function callGroq(env, provider, { levelName, level, question, context, history, reminder }) {
   if (!env.GROQ_API_KEY) throw fail("UPSTREAM", "GROQ_API_KEY not set");
   const model = modelFor(provider, levelName);
   const data = await post(
@@ -87,7 +87,7 @@ async function callGroq(env, provider, { levelName, level, question, context, hi
       response_format: { type: "json_object" },
       ...(model.startsWith("openai/gpt-oss") && { reasoning_effort: level.reasoning }),
       messages: [
-        { role: "system", content: systemPrompt(level) },
+        { role: "system", content: systemPrompt(level, reminder) },
         ...history.map((h) => ({ role: h.role === "user" ? "user" : "assistant", content: h.text })),
         { role: "user", content: userPrompt(question, context) }
       ]

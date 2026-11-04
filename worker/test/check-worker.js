@@ -43,7 +43,8 @@ function fakeUpstream(script) {
     );
   };
 }
-const answer = (extra = {}) => ({ ok: { answer: "An answer.", usedConceptIds: [], usedGeneralKnowledge: true, offTopic: false, ...extra } });
+// The default fake answer has a "### " section, so Normal / Deep don't retry for headings.
+const answer = (extra = {}) => ({ ok: { answer: "An answer.\n\n### More\n- a point", usedConceptIds: [], usedGeneralKnowledge: true, offTopic: false, ...extra } });
 const QUESTION = { question: "What is latency?", level: "normal", context: [{ id: "latency", title: "Latency", text: "How long one request takes." }] };
 
 const log = console.log;
@@ -68,7 +69,7 @@ check((await call({ question: "hi", context: [{ id: "x", text: "y".repeat(40_000
 // --- Happy path, and what gets sent ---
 fakeUpstream([answer({ usedConceptIds: ["latency", "made-up", "latency"], usedGeneralKnowledge: false })]);
 let r = await call(QUESTION);
-check(r.status === 200 && r.json.answer === "An answer." && r.json.provider === "groq" && r.json.model === PROVIDERS[0].model, `first provider should answer, got ${JSON.stringify(r.json)}`);
+check(r.status === 200 && r.json.answer.startsWith("An answer.") && r.json.provider === "groq" && r.json.model === PROVIDERS[0].model, `first provider should answer, got ${JSON.stringify(r.json)}`);
 check(same(r.json.usedConceptIds, ["latency"]), `only sent ids count, once each: got ${JSON.stringify(r.json.usedConceptIds)}`);
 check(r.json.usedGeneralKnowledge === false, "usedGeneralKnowledge should pass through");
 check(r.headers.get("access-control-allow-origin") === ORIGIN, "answer should carry the CORS header");
@@ -76,6 +77,30 @@ check(calls[0].headers.authorization === "Bearer groq-test", "Groq key should go
 const sentText = JSON.stringify(calls[0].body.messages);
 check(sentText.includes("[id: latency]") && sentText.includes("QUESTION: What is latency?"), "prompt should carry the context and question");
 check(!sentText.includes("groq-test") && !sentText.includes("gemini-test"), "keys must never be in the prompt");
+
+fakeUpstream([answer({ answer: "Intro.\\n\\n### Title\\n- a\\n- b" })]);
+check((await call(QUESTION)).json.answer === "Intro.\n\n### Title\n- a\n- b", "line breaks escaped twice should become real ones");
+check(calls[0].body.messages[0].content.includes('"### " heading'), "the normal level should ask for headings");
+
+// Missing "### " sections at Normal / Deep: one firmer retry, same provider.
+const FLAT = answer({ answer: "One long paragraph, no sections." });
+const SECTIONED = answer({ answer: "Short answer.\n\n### Why\n- a" });
+fakeUpstream([FLAT, SECTIONED]);
+r = await call(QUESTION);
+check(r.json.answer.includes("### Why") && calls.length === 2 && calls[1].model === calls[0].model, "flat Normal answer → one retry, sectioned answer kept");
+check(calls[1].body.messages[0].content.startsWith("IMPORTANT") && !calls[0].body.messages[0].content.startsWith("IMPORTANT"), "only the retry should carry the reminder");
+fakeUpstream([FLAT, FLAT]);
+r = await call({ ...QUESTION, level: "deep" });
+check(r.status === 200 && r.json.answer === "One long paragraph, no sections." && calls.length === 2, "two flat answers → first one returned, no third call");
+fakeUpstream([FLAT, { status: 429, text: "requests per minute" }]);
+r = await call(QUESTION);
+check(r.status === 200 && r.json.answer === "One long paragraph, no sections." && calls.length === 2, "a failed retry keeps the first answer");
+fakeUpstream([FLAT]);
+r = await call({ ...QUESTION, level: "quick" });
+check(r.status === 200 && calls.length === 1, "Quick has no sections, so no retry");
+fakeUpstream([SECTIONED]);
+await call(QUESTION);
+check(calls.length === 1, "a sectioned answer needs no retry");
 
 fakeUpstream([answer({ usedGeneralKnowledge: "yes" })]);
 check((await call(QUESTION)).json.usedGeneralKnowledge === true, "anything but false counts as general knowledge (safer badge)");
